@@ -1,0 +1,41 @@
+set ns [new Simulator]
+
+set tr [open stop_and_wait.tr w]
+$ns trace-all $tr
+
+set nm [open stop_and_wait.nam w]
+$ns namtrace-all $nm
+
+proc finish {} {
+    global ns tr nm
+    $ns flush-trace
+    close $tr
+    close $nm
+    exec nam stop_and_wait.nam &
+    exit 0
+}
+
+set n0 [$ns node]
+set n1 [$ns node]
+
+$ns duplex-link $n0 $n1 1Mb 10ms DropTail
+$ns queue-limit $n0 $n1 1
+
+set tcp [new Agent/TCP]
+$tcp set window_ 1
+$tcp set packetSize_ 512
+$ns attach-agent $n0 $tcp
+
+set sink [new Agent/TCPSink]
+$ns attach-agent $n1 $sink
+
+$ns connect $tcp $sink
+
+set ftp [new Application/FTP]
+$ftp attach-agent $tcp
+
+$ns at 0.5 "$ftp start"
+$ns at 4.0 "$ftp stop"
+$ns at 4.5 "finish"
+
+$ns run
